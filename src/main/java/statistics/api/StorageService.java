@@ -62,6 +62,7 @@ public class StorageService {
         if(!nowValue.equals(lastUpdate)) {
             durations.removeLast();
             durations.addFirst(0.0);
+            lastUpdate = nowValue;
         }
     }
 
