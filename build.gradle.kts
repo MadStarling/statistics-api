@@ -19,9 +19,9 @@ dependencies {
 }
 
 application {
-    mainClassName = "statistics.api.Application"
+    mainClassName = "statistics.api"
 }
 
-tasks.register<Test>("storageTest") {
+tasks.named<Test>("test") {
     useJUnitPlatform()
 }
