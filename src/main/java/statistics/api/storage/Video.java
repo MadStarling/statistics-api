@@ -1,4 +1,4 @@
-package statistics.api;
+package statistics.api.storage;
 
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -6,20 +6,20 @@ import org.springframework.util.MultiValueMap;
 import java.util.List;
 import java.util.Map;
 
-public class VideoStorage {
+public class Video {
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private MultiValueMap<String, Double> storageBag;
-    private static VideoStorage instance = null;
+    private static Video instance = null;
 
-    private VideoStorage(){
+    private Video(){
         storageBag = new LinkedMultiValueMap<>();
     }
 
-    public static VideoStorage getInstance(){
+    public static Video getInstance(){
         if(instance == null){
-            synchronized (VideoStorage.class){
+            synchronized (Video.class){
                 if(instance==null)
-                    instance = new VideoStorage();
+                    instance = new Video();
             }
         }
         return instance;

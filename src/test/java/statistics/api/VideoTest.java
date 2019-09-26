@@ -2,6 +2,7 @@ package statistics.api;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import statistics.api.storage.Video;
 
 import java.util.HashMap;
 import java.util.List;
@@ -11,12 +12,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class VideoStorageTest {
-    private static VideoStorage storage;
+class VideoTest {
+    private static Video storage;
 
     @BeforeAll
     static void initTest(){
-        storage = VideoStorage.getInstance();
+        storage = Video.getInstance();
     }
 
     void addVideo(String timestamp, double duration){

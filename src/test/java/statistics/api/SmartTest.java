@@ -1,6 +1,7 @@
 package statistics.api;
 
 import org.junit.jupiter.api.Test;
+import statistics.api.storage.Smart;
 
 import java.util.HashMap;
 import java.util.List;
@@ -10,8 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class StorageServiceTest {
-    private static StorageService service;
+class SmartTest {
+    private static Smart service;
 
     void addVideo(String timestamp, double duration){
         Map<String, Object> video = new HashMap<String, Object>(){{
