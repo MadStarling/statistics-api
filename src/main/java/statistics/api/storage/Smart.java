@@ -1,11 +1,7 @@
 package statistics.api.storage;
 
 import java.sql.Timestamp;
-import java.util.Map;
-import java.util.List;
-import java.util.LinkedList;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 public class Smart {
     private Video storage;
@@ -13,7 +9,8 @@ public class Smart {
     private LinkedList<Double> durationPerSecond;
     private LinkedList<Integer> countPerSecond;
     private String lastUpdate = null;
-    private double count = 0, sum = 0, avg = 0, max = 0, min = 0;
+    private double count = 0, sum = 0, avg = 0;
+    private Map<Long, Double> max, min;
 
     public Smart() {
         storage = Video.getInstance();
@@ -33,17 +30,18 @@ public class Smart {
             public void run() {
                 Timestamp now = new Timestamp(System.currentTimeMillis());
                 updateDurations(Long.toString(now.getTime()));
+                reviewMaxMin(now);
             }
         }, 1000, 1000);
     }
 
     public void add(Map<String, Object> video) {
         storage.add(video);
-        updateDurations(
+        new Thread(() -> updateDurations(
                 new Timestamp(System.currentTimeMillis()),
                 (String) video.get("timestamp"),
                 (double) video.get("duration")
-        );
+        )).start();
     }
 
     public List<Double> getList(String timestamp) {
@@ -61,8 +59,10 @@ public class Smart {
         if(!nowValue.equals(lastUpdate))
             updateDurations(nowValue);
 
-        if(secondsDiff >= 0 && secondsDiff < 60)
+        if(secondsDiff >= 0 && secondsDiff < 60) {
             updateSecondStatus(secondsDiff, duration);
+            reviewMaxMin(time, duration);
+        }
     }
 
     private void updateDurations(String nowValue) {
@@ -75,11 +75,75 @@ public class Smart {
     }
 
     private synchronized void updateStatus() {
-        synchronized (this){
-            updateCount();
-            updateSum();
-            updateAvg();
+        updateCount();
+        updateSum();
+        updateAvg();
+    }
+
+    private void reviewMaxMin(Timestamp now) {
+        Long maxTime = max.entrySet().iterator().next().getKey();
+        Long minTime = min.entrySet().iterator().next().getKey();
+        int maxDiff = (int) (now.getTime() - maxTime) / 1000;
+        int minDiff = (int) (now.getTime() - minTime) / 1000;
+
+        if(maxDiff >= 60)
+            new Thread(() -> getNewMax(now.getTime())).start();
+
+        if(minDiff >= 60)
+            new Thread(() -> getNewMin(now.getTime())).start();
+    }
+
+    private void reviewMaxMin(Timestamp moment, double duration) {
+        double currentMax = max.entrySet().iterator().next().getValue();
+        double currentMin = min.entrySet().iterator().next().getValue();
+
+        if(duration > currentMax) {
+            max = new HashMap<>(){{
+                put(moment.getTime(), duration);
+            }};
         }
+
+        if(duration < currentMin) {
+            min = new HashMap<>(){{
+                put(moment.getTime(), duration);
+            }};
+        }
+    }
+
+    private void getNewMax(long now) {
+        double maxDuration = 0;
+        long time = 0;
+        for (int i = 0; i < 60; i++) {
+            double currentMax = Collections.max(storage.getList(Long.toString(now-i)));
+            if(currentMax > maxDuration) {
+                maxDuration = currentMax;
+                time = now-i;
+            }
+        }
+
+        double finalMaxDuration = maxDuration;
+        long finalTime = time;
+        max = new HashMap<>(){{
+            put(finalTime, finalMaxDuration);
+        }};
+    }
+
+    private void getNewMin(long now) {
+        double minDuration = 0;
+        long time = 0;
+        for (int i = 0; i < 60; i++) {
+            double currentMax = Collections.min(storage.getList(Long.toString(now-i)));
+            if(currentMax > minDuration) {
+                minDuration = currentMax;
+                time = now-i;
+            }
+        }
+
+        double finalMinDuration = minDuration;
+        long finalTime = time;
+        min = new HashMap<>(){{
+            put(finalTime, finalMinDuration);
+        }};
     }
 
     private void updateAvg() {
@@ -108,6 +172,7 @@ public class Smart {
         double currentDuration = durationPerSecond.get(secondsDiff);
         currentDuration += duration;
         durationPerSecond.add(secondsDiff, currentDuration);
+
         int currentCount = countPerSecond.get(secondsDiff);
         currentCount++;
         countPerSecond.add(secondsDiff, currentCount);
