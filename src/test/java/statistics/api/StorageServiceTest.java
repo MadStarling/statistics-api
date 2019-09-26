@@ -1,6 +1,5 @@
 package statistics.api;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -11,20 +10,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class VideoStorageTest {
-    private static VideoStorage storage;
-
-    @BeforeAll
-    static void initTest(){
-        storage = VideoStorage.getInstance();
-    }
+class StorageServiceTest {
+    private static StorageService service;
 
     void addVideo(String timestamp, double duration){
         Map<String, Object> video = new HashMap<String, Object>(){{
             put("duration", duration);
             put("timestamp", timestamp);
         }};
-        storage.add(video);
+        service.add(video);
     }
 
     @Test
@@ -32,13 +26,13 @@ class VideoStorageTest {
         String timestamp = "1876429872198";
         addVideo(timestamp, 200.3);
 
-        List<Double> firstResult = storage.getList(timestamp);
+        List<Double> firstResult = service.getList(timestamp);
         assertEquals(1, firstResult.size());
         assertEquals(200.3, (double) firstResult.get(0));
 
         addVideo(timestamp, 105.17);
 
-        List<Double> secondResult = storage.getList(timestamp);
+        List<Double> secondResult = service.getList(timestamp);
         assertEquals(2, firstResult.size());
         assertEquals(105.17, (double) firstResult.get(1));
     }
@@ -49,10 +43,10 @@ class VideoStorageTest {
         addVideo(timestamp, 200.3);
         addVideo(timestamp, 105.17);
 
-        List<Double> firstResult = storage.getList(timestamp);
+        List<Double> firstResult = service.getList(timestamp);
         assertTrue(firstResult.size() > 0);
-        storage.deleteAll();
+        service.deleteAll();
 
-        assertNull(storage.getList(timestamp));
+        assertNull(service.getList(timestamp));
     }
 }
