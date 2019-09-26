@@ -14,14 +14,14 @@ dependencies {
     implementation("com.google.guava:guava:27.1-jre")
     implementation("org.springframework.boot:spring-boot-starter-web:2.1.8.RELEASE")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.4.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test:2.1.8.RELEASE")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.4.2")
 }
 
 application {
     mainClassName = "statistics.api"
 }
 
-tasks.named<Test>("test") {
-    useJUnitPlatform()
+tasks.withType<Test> {
+    useJUnitPlatform ()
 }
