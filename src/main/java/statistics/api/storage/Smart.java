@@ -10,15 +10,26 @@ public class Smart {
     private LinkedList<Integer> countPerSecond;
     private String lastUpdate = null;
     private double count = 0, sum = 0, avg = 0;
-    private Map<Long, Double> max, min;
+    private Map<String, Object> max, min;
 
     public Smart() {
         storage = Video.getInstance();
         durationPerSecond = new LinkedList<>();
         countPerSecond = new LinkedList<>();
+        long time = System.currentTimeMillis();
+        max = new HashMap<>(){{
+            put("time", time);
+            put("value", 0.0);
+        }};
+        min = new HashMap<>(){{
+            put("time", time);
+            put("value", -1.0);
+        }};
 
-        for (int i = 0; i <= 60; i++)
+        for (int i = 0; i < 60; i++) {
             durationPerSecond.add(i, 0.0);
+            countPerSecond.add(i, 0);
+        }
 
         startTimedUpdate();
     }
@@ -29,7 +40,7 @@ public class Smart {
             @Override
             public void run() {
                 Timestamp now = new Timestamp(System.currentTimeMillis());
-                updateDurations(Long.toString(now.getTime()));
+                reviewStatus(Long.toString(now.getTime()));
                 reviewMaxMin(now);
             }
         }, 1000, 1000);
@@ -37,11 +48,11 @@ public class Smart {
 
     public void add(Map<String, Object> video) {
         storage.add(video);
-        new Thread(() -> updateDurations(
+        addVideoStatistics(
                 new Timestamp(System.currentTimeMillis()),
                 (String) video.get("timestamp"),
                 (double) video.get("duration")
-        )).start();
+        );
     }
 
     public List<Double> getList(String timestamp) {
@@ -52,60 +63,83 @@ public class Smart {
         storage.deleteAll();
     }
 
-    private void updateDurations(Timestamp now, String timestamp, double duration){
-        Timestamp time = new Timestamp(Long.parseLong(timestamp));
+    public Map<String, Object> getStatistics() {
+        return new HashMap<>(){{
+            put("sum", sum);
+            put("count", count);
+            put("avg", avg);
+            put("max", max.get("value"));
+            put("min", min.get("value"));
+        }};
+    }
+
+    private synchronized void addVideoStatistics(Timestamp now, String videoTime, double videoDuration){
+        Timestamp time = new Timestamp(Long.parseLong(videoTime));
         int secondsDiff = (int) (now.getTime() - time.getTime()) / 1000;
-        String nowValue = Long.toString(now.getTime());
-        if(!nowValue.equals(lastUpdate))
-            updateDurations(nowValue);
 
         if(secondsDiff >= 0 && secondsDiff < 60) {
-            updateSecondStatus(secondsDiff, duration);
-            reviewMaxMin(time, duration);
+            updateSecondsStatus(secondsDiff, videoDuration);
+            reviewMaxMin(time, videoDuration);
+            reviewStatus();
         }
     }
 
-    private void updateDurations(String nowValue) {
-        if(!nowValue.equals(lastUpdate)) {
-            removeLastSecondStatus(nowValue);
-            addCurrentSecond(nowValue);
-            updateStatus();
-            lastUpdate = nowValue;
-        }
-    }
-
-    private synchronized void updateStatus() {
+    private synchronized void reviewStatus() {
         updateCount();
         updateSum();
         updateAvg();
     }
 
+    private synchronized void reviewStatus(String nowValue) {
+        if(!nowValue.equals(lastUpdate)) {
+            skipSecond(nowValue);
+            lastUpdate = nowValue;
+        }
+        reviewStatus();
+    }
+
+    private void skipSecond(String nowValue) {
+            removeLastSecondStatus(nowValue);
+            addCurrentSecond(nowValue);
+    }
+
     private void reviewMaxMin(Timestamp now) {
-        Long maxTime = max.entrySet().iterator().next().getKey();
-        Long minTime = min.entrySet().iterator().next().getKey();
+        Long maxTime = (Long) max.get("time");
+        Long minTime = (Long) min.get("time");
         int maxDiff = (int) (now.getTime() - maxTime) / 1000;
         int minDiff = (int) (now.getTime() - minTime) / 1000;
 
         if(maxDiff >= 60)
-            new Thread(() -> getNewMax(now.getTime())).start();
+            getNewMax(now.getTime());
 
         if(minDiff >= 60)
-            new Thread(() -> getNewMin(now.getTime())).start();
+            getNewMin(now.getTime());
     }
 
-    private void reviewMaxMin(Timestamp moment, double duration) {
-        double currentMax = max.entrySet().iterator().next().getValue();
-        double currentMin = min.entrySet().iterator().next().getValue();
+    private void reviewMaxMin(Timestamp time, double duration) {
+        Long maxTime = (Long) max.get("time");
+        Long minTime = (Long) min.get("time");
+        int maxDiff = (int) (time.getTime() - maxTime) / 1000;
+        int minDiff = (int) (time.getTime() - minTime) / 1000;
 
-        if(duration > currentMax) {
-            max = new HashMap<>(){{
-                put(moment.getTime(), duration);
+        if(maxDiff >= 60)
+            getNewMax(time.getTime());
+
+        if(duration > (double) max.get("value")) {
+            max = new HashMap<>() {{
+                put("time", time.getTime());
+                put("value", duration);
             }};
         }
 
-        if(duration < currentMin) {
-            min = new HashMap<>(){{
-                put(moment.getTime(), duration);
+        if(minDiff >= 60)
+            getNewMin(time.getTime());
+
+        double minVal = (double) min.get("value");
+        if(minVal == -1.0 || duration < minVal) {
+            min = new HashMap<>() {{
+                put("time", time.getTime());
+                put("value", duration);
             }};
         }
     }
@@ -124,7 +158,8 @@ public class Smart {
         double finalMaxDuration = maxDuration;
         long finalTime = time;
         max = new HashMap<>(){{
-            put(finalTime, finalMaxDuration);
+            put("time", finalTime);
+            put("value", finalMaxDuration);
         }};
     }
 
@@ -142,7 +177,8 @@ public class Smart {
         double finalMinDuration = minDuration;
         long finalTime = time;
         min = new HashMap<>(){{
-            put(finalTime, finalMinDuration);
+            put("time", finalTime);
+            put("value", finalMinDuration);
         }};
     }
 
@@ -159,21 +195,25 @@ public class Smart {
     }
 
     private synchronized void addCurrentSecond(String nowValue) {
-        countPerSecond.addFirst(0);
-        durationPerSecond.addFirst(0.0);
+        if(countPerSecond.size() == 59 && durationPerSecond.size() == 59) {
+            countPerSecond.addFirst(0);
+            durationPerSecond.addFirst(0.0);
+        }
     }
 
     private synchronized void removeLastSecondStatus(String nowValue) {
-        durationPerSecond.removeLast();
-        countPerSecond.removeLast();
+        if(durationPerSecond.size() > 0 && countPerSecond.size() > 0) {
+            durationPerSecond.removeLast();
+            countPerSecond.removeLast();
+        }
     }
 
-    private synchronized void updateSecondStatus(int secondsDiff, double duration) {
-        double currentDuration = durationPerSecond.get(secondsDiff);
+    private synchronized void updateSecondsStatus(int secondsDiff, double duration) {
+        double currentDuration = durationPerSecond.remove(secondsDiff);
         currentDuration += duration;
         durationPerSecond.add(secondsDiff, currentDuration);
 
-        int currentCount = countPerSecond.get(secondsDiff);
+        int currentCount = countPerSecond.remove(secondsDiff);
         currentCount++;
         countPerSecond.add(secondsDiff, currentCount);
     }
