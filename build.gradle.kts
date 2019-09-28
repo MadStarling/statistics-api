@@ -11,6 +11,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.json:json:20180813")
     implementation("com.google.guava:guava:27.1-jre")
     implementation("org.springframework.boot:spring-boot-starter-web:2.1.8.RELEASE")
 
