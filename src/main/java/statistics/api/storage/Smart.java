@@ -1,9 +1,13 @@
 package statistics.api.storage;
 
+import org.springframework.stereotype.Component;
+
 import java.sql.Timestamp;
 import java.util.*;
 
+@Component("smart")
 public class Smart {
+
     private Video storage;
 
     private LinkedList<Double> durationPerSecond;
@@ -13,6 +17,10 @@ public class Smart {
     private Map<String, Object> max, min;
 
     public Smart() {
+        resetData();
+    }
+
+    private void resetData() {
         storage = Video.getInstance();
         durationPerSecond = new LinkedList<>();
         countPerSecond = new LinkedList<>();
@@ -61,6 +69,7 @@ public class Smart {
 
     public void deleteAll() {
         storage.deleteAll();
+        resetData();
     }
 
     public Map<String, Object> getStatistics() {
