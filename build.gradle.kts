@@ -20,7 +20,7 @@ dependencies {
 }
 
 application {
-    mainClassName = "statistics.api"
+    mainClassName = "statistics.api.Application"
 }
 
 tasks.withType<Test> {

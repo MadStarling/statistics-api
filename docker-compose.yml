@@ -1,0 +1,9 @@
+version: "2"
+services:
+  statistics_api:
+    container_name: statistics_api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
