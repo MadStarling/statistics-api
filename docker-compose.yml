@@ -1,7 +1,7 @@
 version: "2"
 services:
   statistics_api:
-    image: statistics-api:latest
+    image: madstarling/statistics-api:latest
     container_name: statistics_api
     build:
       context: .
